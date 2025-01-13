@@ -1,9 +1,8 @@
-const unsigned int pinLed = 13;
-const unsigned int pinVrSensor = 2;
-const unsigned int pinSparkInput = 3;
-const unsigned int pinOutput =  12;
-const unsigned int pinCoil14 =  11;
-const unsigned int pinCoil23 =  10;
+const unsigned int pinVrSensor = PB2;
+const unsigned int pinSparkInput = PB1;
+const unsigned int pinOutput =  PB0;
+const unsigned int pinCoil14 =  PB3;
+const unsigned int pinCoil23 =  PB4;
 const unsigned int toothTotal = 62;
 const unsigned int toothMissing = 2;
 
@@ -15,21 +14,26 @@ volatile bool toothDetected = false;
 volatile unsigned int toothCount;
 
 volatile bool crankshaftPositionDetected = false;
-volatile bool crankshaftPositionBelow180 = true;
 
 void setup() {
-  pinMode(pinLed, OUTPUT);
   pinMode(pinVrSensor, INPUT_PULLUP);
   pinMode(pinSparkInput, INPUT_PULLUP);
+
+  pinMode(pinOutput, OUTPUT);
+  digitalWrite(pinOutput, 0);
+
   pinMode(pinCoil14, OUTPUT);
   pinMode(pinCoil23, OUTPUT);
+  digitalWrite(pinCoil14, 1);
+  digitalWrite(pinCoil23, 0);
 
   attachInterrupt(digitalPinToInterrupt(pinVrSensor), toothDetection, RISING);
-  attachInterrupt(digitalPinToInterrupt(pinSparkInput), spark, CHANGE);
 }
 
 void loop() {
   if(toothDetected) {
+    digitalWrite(pinOutput, 1);
+    toothCount++;
     volatile unsigned long pulseDurationNew;
     pulseDurationNew = toothDetectedTime - toothDetectedPrevTime;
 
@@ -37,20 +41,18 @@ void loop() {
     if (pulseDurationNew > pulseDuration*toothMissing && pulseDurationNew < pulseDuration*(toothMissing+2)) {
       toothCount = 0;
       crankshaftPositionDetected = true;
+      digitalWrite(pinOutput, !digitalRead(pinOutput));
     }
 
     pulseDuration = pulseDurationNew;
 
-    if(crankshaftPositionDetected) {
-      toothCount++;
-      if(toothCount < (toothTotal/2)) {
-        crankshaftPositionBelow180 = true;
-        digitalWrite(pinOutput, 1);
-      }
-      else {
-        crankshaftPositionBelow180 = false;
-        digitalWrite(pinOutput, 0);
-      }
+    if(crankshaftPositionDetected && toothCount < (toothTotal/2)) {
+      digitalWrite(pinCoil14, 1);
+      digitalWrite(pinCoil23, 0);
+    }
+    if(toothCount >= (toothTotal/2)) {
+      digitalWrite(pinCoil14, 0);
+      digitalWrite(pinCoil23, 1);
     }
     toothDetected = false;
   }
@@ -60,23 +62,4 @@ void toothDetection() {
   toothDetectedPrevTime = toothDetectedTime;
   toothDetectedTime = micros();
   toothDetected = true;
-}
-
-void spark() {
-  if(digitalRead(pinSparkInput)) {
-    if(crankshaftPositionBelow180) {
-      digitalWrite(pinCoil14, 1);
-    }
-    else {
-      digitalWrite(pinCoil23, 1);
-    }
-  }
-  else {
-    digitalWrite(pinCoil14, 0);
-    digitalWrite(pinCoil23, 0);
-  }
-}
-
-void toggleOutput(int pin) {
-    digitalWrite(pin, !digitalRead(pin));
 }

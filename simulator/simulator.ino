@@ -14,17 +14,18 @@ void setup() {
 
   pinMode(pinVr, OUTPUT);
   pinMode(pinSpark, OUTPUT);
-  digitalWrite(pinVr, 0);
+  digitalWrite(pinVr, 1);
   digitalWrite(pinSpark, 0);
 }
 
 void loop() {
   if ( (beat % 2) == 0) {
-    digitalWrite(pinVr, 0);
+    digitalWrite(pinVr, 1);
   }
   else {
-    if(beat < ((toothTotal-toothMissing)*2))
-    digitalWrite(pinVr, 1);
+    if(beat < ((toothTotal-toothMissing)*2)) {
+      digitalWrite(pinVr, 0);
+    }
   }
   if(beat == 18) {
     digitalWrite(pinSpark, 1);
